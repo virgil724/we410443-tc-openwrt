@@ -1,0 +1,46 @@
+From 5c42629ea725bfc8dbf81c944f5acb51d2124a27 Mon Sep 17 00:00:00 2001
+From: virgil724 <108603174+virgil724@users.noreply.github.com>
+Date: Fri, 20 Nov 2026 12:24:33 +0800
+Subject: [PATCH 2/2] ramips: mt7621: we410443-tc: status LED on GPIO 42 is
+ orange
+
+On the Chunghwa Telecom variant the status LED on GPIO 42 is orange,
+not green as on the KPN/BT units. Verified on device.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013mWRzuSCZB4bYL7yLw9E46
+---
+ target/linux/ramips/dts/mt7621_arcadyan_we410443-tc.dts | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/target/linux/ramips/dts/mt7621_arcadyan_we410443-tc.dts b/target/linux/ramips/dts/mt7621_arcadyan_we410443-tc.dts
+index 8eb4058..3942418 100755
+--- a/target/linux/ramips/dts/mt7621_arcadyan_we410443-tc.dts
++++ b/target/linux/ramips/dts/mt7621_arcadyan_we410443-tc.dts
+@@ -14,9 +14,9 @@
+ 	compatible = "arcadyan,we410443-tc", "mediatek,mt7621-soc";
+ 
+ 	aliases {
+-		led-boot = &led_status_green;
++		led-boot = &led_status_orange;
+ 		led-failsafe = &led_status_red;
+-		led-running = &led_status_green;
++		led-running = &led_status_orange;
+ 		led-upgrade = &led_status_blue;
+ 		label-mac-device = &gmac0;
+ 	};
+@@ -51,8 +51,9 @@
+ 			gpios = <&gpio 41 GPIO_ACTIVE_HIGH>;
+ 		};
+ 
+-		led_status_green: green {
+-			color = <LED_COLOR_ID_GREEN>;
++		/* orange on the TC variant (green on KPN/BT units) */
++		led_status_orange: orange {
++			color = <LED_COLOR_ID_ORANGE>;
+ 			function = LED_FUNCTION_STATUS;
+ 			gpios = <&gpio 42 GPIO_ACTIVE_HIGH>;
+ 		};
+-- 
+2.47.3
+

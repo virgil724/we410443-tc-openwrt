@@ -94,6 +94,55 @@ uci commit
 reboot
 ```
 
+## 刷回原廠韌體
+
+OpenWrt 只寫了 Kernel 槽（`0x050000`，0x7b0000 bytes）。bootloader、`factory`、原廠設定分區
+（`config` / `seccfg` / `pricfg` …）都沒動過，所以**把原廠的 Kernel 槽寫回去就能回到原廠**，原廠設定也還在。
+
+> ⚠️ 這段流程尚未在實機上跑過。寫入前一定要核對檔案大小與 uImage 標頭。
+
+### 1. 準備原廠 Kernel 映像（擇一）
+
+**A. 從安裝前的整顆備份切出來（推薦，版本跟你原本的一樣）**
+
+```sh
+# mtd0_ALL.bin = 安裝前 dump 的整顆 16MB flash
+dd if=mtd0_ALL.bin of=stock-kernel.bin bs=65536 skip=5 count=123   # 0x50000 起、0x7b0000 bytes
+```
+
+**B. 沒有備份：用機器上還留著的 Kernel2 槽**
+
+OpenWrt 沒有動 Kernel2，那裡是一份較舊的原廠韌體（出廠版本），在 OpenWrt 上直接讀出來：
+
+```sh
+grep firmware2 /proc/mtd                         # 找到 firmware2 是哪個 mtdN
+cat /dev/mtdN > /tmp/stock-kernel.bin            # N 換成上面看到的數字
+```
+
+### 2. 確認映像
+
+```sh
+ls -l stock-kernel.bin                 # 必須是 8060928 bytes
+hexdump -C stock-kernel.bin | head -3  # 開頭必須是 27 05 19 56，名稱 "Linux Kernel Image"
+```
+
+### 3. 寫回 Kernel 槽
+
+在 OpenWrt 上（方法 A 要先把檔案傳到 AP，例如 `scp -O stock-kernel.bin root@<AP IP>:/tmp/`）：
+
+```sh
+md5sum /tmp/stock-kernel.bin
+mtd -r write /tmp/stock-kernel.bin firmware
+```
+
+`mtd -r` 寫完會自動重開機，大約 2 分鐘後回到原廠韌體（預設 IP 依原廠設定）。
+開機後中華電信可能會透過 TR-069 自動更新到最新版原廠韌體。
+
+### 救援
+
+- **UART**：原廠 U-Boot（57600 baud）開機 1 秒內按鍵中斷，選「Load system code then write to Flash via TFTP」，用 TFTP 寫入 `stock-kernel.bin`。
+- **CH341A**：用 SOIC8 夾子把安裝前的整顆備份寫回 flash（0x0 起，16 MB）。
+
 ## 已驗證
 
 - [x] 開機、重開機、斷電冷開機，設定保留
@@ -107,7 +156,6 @@ reboot
 ## 備註
 
 - **160 MHz**：MT7615 支援，台灣法規（regdb `TW`）也允許 36–64 以 AUTO-BW 合併，但實測比 149 / 80 MHz 慢（23 dBm vs 30 dBm、36–48 干擾、52–64 需 DFS）。不建議。
-- **救援**：原廠 U-Boot 有 TFTP 刷寫選單（UART 57600，開機 1 秒內中斷）；或用 CH341A 寫回整顆備份。
 - 原廠 Kernel2 槽保持不動；開機失敗時 bootloader 是否會自動切換到 Kernel2 **未驗證**。
 
 ## 參考
